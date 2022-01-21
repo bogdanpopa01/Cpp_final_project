@@ -59,6 +59,7 @@ public:
 			throw new exception("Hp invalid!\n");
 		else
 			this->hp = hp;
+
 		if (nrAbilitati <= 0 && dmgAbilitati == nullptr)
 			throw new exception("nrAbilitati invalid sau dmgAbilitati invalid!\n");
 		else
@@ -91,6 +92,7 @@ public:
 			throw new exception("Hp invalid!\n");
 		else
 			this->hp = hp;
+
 		if (nrAbilitati <= 0 && dmgAbilitati == nullptr)
 			throw new exception("nrAbilitati invalid sau dmgAbilitati invalid!\n");
 		else
@@ -431,7 +433,7 @@ public:
 		return durataStun;
 	}
 
-	// cerinta 7 - settari folositi pentru a da trigger la exceptiile custom
+	// cerinta 6 - settarii folositi pentru a da trigger la exceptiile custom
 	void setDurataStunSpider(int durata)
 	{
 		if (durata <= 0)
@@ -505,7 +507,10 @@ public:
 	Skeleton(const char* nume, double hp, int nrAbilitati, float* dmgAbilitati, int nrOase)
 		:Monster(nume, hp, nrAbilitati, dmgAbilitati)
 	{
-		this->nrOase = nrOase;
+		if (nrOase <= 0)
+			throw exception("Numar oase invalid!\n");
+		else
+			this->nrOase = nrOase;
 	}
 
 	string experientaNecesara()
@@ -538,7 +543,10 @@ public:
 	FireSkeleton(const char* nume, double hp, int nrAbilitati, float* dmgAbilitati, int nrOase, int nrSageti)
 		:Skeleton(nume, hp, nrAbilitati, dmgAbilitati, nrOase)
 	{
-		this->nrSageti = nrSageti;
+		if (nrSageti <= 0)
+			throw exception("Numar de sageti invalid!\n");
+		else
+			this->nrSageti = nrSageti;
 	}
 
 	string experientaNecesara()
@@ -559,6 +567,46 @@ public:
 		return "FireSkeleton-ul dropeaza 2 iteme rare.\n";
 	}
 
+};
+
+// cerinta 1 - al doile nepot
+
+class WaterSkeleton : public Skeleton, public InterfataMonster
+{
+	int nrSabii = 2;
+public:
+
+	WaterSkeleton() :Skeleton()
+	{
+		this->nrSabii = 4;
+	}
+
+	WaterSkeleton(const char* nume, double hp, int nrAbilitati, float* dmgAbilitati, int nrOase, int nrSabii)
+		:Skeleton(nume, hp, nrAbilitati, dmgAbilitati, nrOase)
+	{
+		if (nrSabii <= 0)
+			throw exception("Numar sabii invalid!\n");
+		else
+			this->nrSabii = nrSabii;
+	}
+
+	string experientaNecesara()
+	{
+		return "WaterSkeleton-ul dropeaza 18000 exp.\n";
+	}
+
+	friend ostream& operator<<(ostream& out, const WaterSkeleton& src)
+	{
+		out << (Skeleton&)src;
+		out << "\tNumar sabii: " << src.nrSabii << '\n';
+		return out;
+	}
+
+	// implementarea functiei impusa de clasa abstracta
+	string nrItemeRare()
+	{
+		return "WaterSkeleton-ul dropeaza 3 iteme rare.\n";
+	}
 };
 
 // cerinta 5 - compunere
@@ -590,8 +638,6 @@ public:
 	{
 		this->denumire = src.denumire;
 		this->nrMonsters = src.nrMonsters;
-		if (this->monsters != nullptr)
-			delete[] this->monsters;
 		this->monsters = new Monster[src.nrMonsters];
 		for (int i = 0; i < src.nrMonsters; i++)
 			this->monsters[i] = src.monsters[i];
@@ -620,7 +666,6 @@ public:
 			delete[] this->monsters;
 	}
 
-	// functii bonus pentru adaugarea si stergerea unui obiect 
 	void adaugaMonster(Monster m)
 	{
 		Monster* aux = new Monster[nrMonsters + 1];
@@ -756,10 +801,65 @@ public:
 		for (int i = 0; i < src.nrMonsters; i++)
 			out << src.monsters[i] << '\n';
 		out << '\n';
+
 		return out;
+	}
+
+	void adaugaMonster(Monster m)
+	{
+		this->nrMonsters += 1;
+		this->monsters.push_back(m);
+	}
+
+	void stergereMonster(Monster m)
+	{
+		int ct , j =0;
+		do {
+			ct = 0;
+			for (int i = 0; i < nrMonsters; i++)
+				if (monsters[i] == m)
+				{
+					ct++;
+					j = i;
+				}
+			if (ct > 0)
+			{
+				this->monsters.erase(monsters.begin() + j);
+				this->nrMonsters -= 1;
+			}
+		} while (ct>0);
+	}
+
+	friend ofstream& operator<<(ofstream& op, CompunereDeMonstersSTL& c)
+	{
+		int dim = c.denumire.size() + 1;
+		op.write((char*)&dim, sizeof(dim));
+		op.write(c.denumire.c_str(), dim);
+		op.write((char*)&c.nrMonsters, sizeof(c.nrMonsters));
+		for (int i = 0; i < c.nrMonsters; i++)
+			c.monsters[i].scriereFisierBinar(op);
+		return op;
+	}
+
+	friend ifstream& operator>>(ifstream& opp, CompunereDeMonstersSTL& c)
+	{
+		int dim = 0;
+		opp.read((char*)&dim, sizeof(dim));
+		char aux[100];
+		opp.read(aux, dim);
+		c.denumire = aux;
+		opp.read((char*)&c.nrMonsters, sizeof(c.nrMonsters));
+		for (int i = 0; i < c.nrMonsters; i++)
+		{
+			Monster a;
+			a.citireFisierBinar(opp);
+			c.monsters[i] = a;
+		}
+		return opp;
 	}
 	
 };
+
 
 
 int main()
@@ -922,7 +1022,44 @@ int main()
 	vector_stl.push_back(mv2);
 
 	CompunereDeMonstersSTL compunere_stl("Compunere De Monstrii STL", 2, vector_stl);
+	cout << "Pana in adaugare: \n\n";
 	cout << compunere_stl<<'\n';
+
+	float mv3v[] = { 511,66,72 };
+	Monster mv3("Trei", 19595, 3, mv3v);
+
+	compunere_stl.adaugaMonster(mv1);
+	cout << "Dupa adaugare1:\n\n";
+	cout << compunere_stl << '\n';
+
+	compunere_stl.adaugaMonster(mv3);
+	cout << "Dupa adaugare2:\n\n";
+	cout << compunere_stl << '\n';
+
+	compunere_stl.stergereMonster(mv1);
+	cout << "Dupa stergere:\n\n";
+	cout << compunere_stl << '\n';
+
+	cout << "Test pentru citirea si scrierea din fisier binar pentru clasa cu STL:\n\n";
+
+	ofstream fisBinarOut2("nou.bin", ios::out | ios::binary | ios::app);
+	if (fisBinarOut2.is_open())
+	{
+		fisBinarOut2 << compunere_stl;
+		fisBinarOut2.close();
+	}
+	else
+		cout << "Fisierul nu poate fi deschis pentru scriere!\n";
+
+	ifstream fisBinarIn2("nou.bin", ios::in | ios::binary);
+	if (fisBinarIn2.is_open())
+	{
+		fisBinarIn2 >> compunere_stl;
+		cout << compunere_stl;
+		fisBinarIn2.close();
+	}
+	else
+		cout << "Fisierul nu poate fi deschis pentru citire!\n";
 
 	// cerinta 9 - early si late binding
 	cout << "\nCerinta 9:\n\n";
@@ -947,7 +1084,12 @@ int main()
 	float mp4v[] = { 422 };
 	FireSkeleton mp4("Patru", 5555, 1, mp4v, 32, 55);
 	cout << mp4;
-	cout << mp4.experientaNecesara();
+	cout << mp4.experientaNecesara()<<'\n';
+
+	float mp5v[] = { 2 };
+	WaterSkeleton mp5("Cinci", 321, 1, mp5v, 35, 16);
+	cout << mp5;
+	cout << mp5.experientaNecesara();
 
 	cout << "\nLate-binding:\n\n";
 
@@ -967,11 +1109,30 @@ int main()
 	cout << *poli;
 	cout << poli->experientaNecesara() << '\n';
 
+	poli = &mp5;
+	cout << *poli;
+	cout << poli->experientaNecesara() << '\n';
+
 	// cerinta 10
 	cout << "\nCerinta 10:\n\n";
 
-	Monster** vectorMonster = new Monster * [3]{ &mp2,&mp3,&mp4 };
+	float mogu1[] = { 1,2,3 };
+	FireSkeleton c10("Mogu", 4500, 3, mogu1, 22, 90);
+
+
+	float mogu2[] = { 718,22,43 };
+	WaterSkeleton c11("Mogusan", 14500, 3, mogu2, 322, 190);
+
+	float mogu3[] = { 1718,122,143 };
+	FireSkeleton skeletonAjutator("Basic", 1567, 2, mogu3, 114, 144);
+
+	Skeleton* sp = &skeletonAjutator;
+
+	Skeleton** vectorSkeletoni = new Skeleton * [3]{ &c10,&c11,&skeletonAjutator };
 	for (int i = 0; i < 3; i++)
-		cout << vectorMonster[i]->experientaNecesara();
+	{
+		cout << vectorSkeletoni[i]->nrItemeRare();
+		cout << vectorSkeletoni[i]->experientaNecesara();
+	}
 
 }
