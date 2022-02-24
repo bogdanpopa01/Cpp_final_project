@@ -12,7 +12,8 @@ va dropa fiecare tip de monstru.
   - utilizarea unei clase abstracte si a unei interfete
   - supraincarcarea tuturor operatorilor 
   - folosirea unei clase de tip compunere
-  - folosirea exceptiilor custom si prinderea acestor in blocuri de tip try-catch
+  - utilizarea de settari si gettari
+  - folosirea exceptiilor custom si prinderea acestora in blocuri de tip try-catch
   - serializare/deserializare
   - utilizarea STL-urilor si a functiilor template
   - demonstrarea conceptelor de early si late-binding
